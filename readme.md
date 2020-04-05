@@ -1,14 +1,26 @@
-# Foobar
+# Mobile Manipulation Project
 
-Foobar is a Python library for dealing with word pluralization.
+I basically combined the atsushi astar code with our project 4 robot code.Not done combining.
+
+i think this onlyworks in linux environment.
 
 ## Installation
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install foobar.
+create a virtual environment through "python3.7 -m venv venv" inside this github folder.It will create a virtual environment with python 3.7. 
 
-```bash
-pip install foobar
-```
+activate the environment through "source venv/bin/activate"
+
+install all dependencies through "pip3.7 install -r requirements.txt". Im pretty sure this contains more packages than needed, so need to figure out how to avoid this.
+
+If installing dependencies this way doesnt work, need to do it manually below:
+
+pip3.7 install --upgrade pip
+pip3.7 install https://files.pythonhosted.org/packages/e6/30/9c053e755e659e5bf5b7276c23b10bbc8e284ab8b85039e7d8e102d8517b/gtsam-4.0.2-cp37-none-manylinux2014_x86_64.whl
+pip3.7 install matplotlib
+pip3.7 install IPython
+pip3.7 install sympy
+pip3.7 install scipy
+
 
 ## Usage
 
