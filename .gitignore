@@ -1,3 +1,4 @@
 venv
 /venv/share/man/man1/ipython.1.gz
 /venv/share/man/man1/isympy.1
+__pycache__
