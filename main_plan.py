@@ -12,7 +12,7 @@ from kinematics_main import inverse_kinematics, forward_kinematics, jacobian_inv
 ####forward kinematics stuff
 Kp = 2
 dt = 0.1
-N_LINKS = 10
+N_LINKS = 3
 N_ITERATIONS = 10000
 
 # States
@@ -25,8 +25,8 @@ def main():
     # start and goal position
     sx = 10.0  # [m]
     sy = 10.0  # [m]
-    gx = 50.0  # [m]
-    gy = 50.0  # [m]
+    gx = 48.0  # [m]
+    gy = 48.0  # [m]
     grid_size = 2.0  # [m]
     robot_radius = 1.0  # [m]
 
@@ -66,10 +66,10 @@ def main():
         plt.show()
         
     start_kin_x = rx[0]
-    start_kin_y = ry[1]
-    goal_x_kin, goal_y_kin = gx, gy
+    start_kin_y = ry[0]
+    goal_x_kin, goal_y_kin = 50, 50
     
-    #do forward kinematics
+    #do inverse kinematics
     
     link_lengths = [1] * N_LINKS
     joint_angles = np.array([0] * N_LINKS)
@@ -78,33 +78,31 @@ def main():
     arm = NLinkArm(link_lengths, joint_angles, goal_pos, show_animation)
     state = WAIT_FOR_NEW_GOAL
     solution_found = False
+       
+    old_goal = np.array(goal_pos)
+    goal_pos = np.array(arm.goal)
+    end_effector = arm.end_effector
+    errors, distance = distance_to_goal(end_effector, goal_pos)
     
-    while(1):
-        if state is WAIT_FOR_NEW_GOAL:
-            
-            old_goal = np.array(goal_pos)
-            goal_pos = np.array(arm.goal)
-            end_effector = arm.end_effector
-            errors, distance = distance_to_goal(end_effector, goal_pos)
-        
-            if distance > 0.1 and not solution_found:
-                joint_goal_angles, solution_found = inverse_kinematics(
-                    link_lengths, joint_angles, goal_pos)
-                if not solution_found:
-                    print("Solution could not be found.")
-                    break
-                elif solution_found:
-                    state = MOVING_TO_GOAL
-                        
-            elif state is MOVING_TO_GOAL:
-                if distance > 0.1 and all(old_goal == goal_pos):
-                    joint_angles = joint_angles + Kp * \
-                        ang_diff(joint_goal_angles, joint_angles) * dt
-                else:
-                    state = WAIT_FOR_NEW_GOAL
-                    solution_found = False
-                    print("Solution could not be found.")
-                    break
+    if state is WAIT_FOR_NEW_GOAL:
+    
+        if distance > 0.1 and not solution_found:
+            joint_goal_angles, solution_found = inverse_kinematics(
+                link_lengths, joint_angles, goal_pos)
+            if not solution_found:
+                print("Solution could not be found.")
+    
+            elif solution_found:
+                state = MOVING_TO_GOAL
+                    
+    if state is MOVING_TO_GOAL:
+        if distance > 0.1 and all(old_goal == goal_pos):
+            joint_angles = joint_angles + Kp * \
+                ang_diff(joint_goal_angles, joint_angles) * dt
+        else:
+            state = WAIT_FOR_NEW_GOAL
+            solution_found = False
+            print("Solution could not be found.")
                     
         arm.update_joints(joint_angles)
     

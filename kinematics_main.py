@@ -11,7 +11,7 @@ from NLinkArm import NLinkArm
 # Simulation parameters
 Kp = 2
 dt = 0.1
-N_LINKS = 10
+N_LINKS = 3
 N_ITERATIONS = 10000
 
 # States
@@ -127,7 +127,11 @@ def animation():
 
 def forward_kinematics(link_lengths, joint_angles):
     x = y = 0
+    print(link_lengths)
+    print(joint_angles)
+    print(joint_angles[:4])
     for i in range(1, N_LINKS + 1):
+        print(i)
         x += link_lengths[i - 1] * np.cos(np.sum(joint_angles[:i]))
         y += link_lengths[i - 1] * np.sin(np.sum(joint_angles[:i]))
     return np.array([x, y]).T
