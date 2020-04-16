@@ -66,12 +66,15 @@ def inverse_kinematics(link_lengths, joint_angles, goal_pos):
     """
     for iteration in range(N_ITERATIONS):
         current_pos = forward_kinematics(link_lengths, joint_angles)
+        print("current_pos = ", current_pos)
         errors, distance = distance_to_goal(current_pos, goal_pos)
         if distance < 0.1:
             print("Solution found in %d iterations." % iteration)
             return joint_angles, True
         J = jacobian_inverse(link_lengths, joint_angles)
+        print("Jinv = ", J)
         joint_angles = joint_angles + np.matmul(J, errors)
+        #update_joints(joint_angles) #Sanmesh
     return joint_angles, False
 
 
