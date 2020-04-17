@@ -69,12 +69,41 @@ def generateObstacleLocationMap():
 ##
 #Gets x and y pixel positions containing obstacles. obstacles include the bounding wall
 ##
+
+def plotRobotTrajectory(traj_x, traj_y, xPositionOfObstacles, yPositionOfObstacles):
+    
+    rev_traj_x = traj_x[::-1]
+    rev_traj_y = traj_y[::-1]
+    
+    for i in range(len(traj_x)):
+        plt.cla()
+        generateMapPlotWithRobot(xPositionOfObstacles, yPositionOfObstacles, robotStartPose, robotEndPose, objectPose)
+        plt.plot(traj_x, traj_y, "-r")
+        
+        points = [[rev_traj_x[i], rev_traj_y[i]] for _ in range(N_LINKS + 1)]
+        
+        for i in range(1, N_LINKS + 1):
+            points[i][0] = points[i - 1][0] + link_lengths[i - 1] * \
+                np.cos(np.sum(joint_angles[:i]))
+            points[i][1] = points[i - 1][1] + link_lengths[i - 1] * \
+                np.sin(np.sum(joint_angles[:i]))
+        
+        for i in range(N_LINKS + 1):
+            if i is not N_LINKS:
+                x = plt.plot([points[i][0], points[i + 1][0]],
+                            [points[i][1], points[i + 1][1]], 'r-', linewidth=2)
+            plt.plot(points[i][0], points[i][1], 'ko', markersize=1)
+            
+        plt.draw()
+        plt.pause(0.0001)
+
 def generateMapPlotWithRobot(xPositionOfObstacles,yPositionOfObstacles, robotStartPose, robotEndPose, objectPose):
     if show_animation:  # pragma: no cover
         plt.plot(xPositionOfObstacles, yPositionOfObstacles, ".k")
         plt.plot(robotStartPose[0], robotStartPose[1], "og")
         plt.plot(robotEndPose[0], robotEndPose[1], "xb")
         plt.plot(objectPose[0], objectPose[1], "xr")
+        
         plt.grid(True)
         plt.axis("equal")
 
@@ -134,10 +163,9 @@ def main():
     #Show calculated path
     if show_animation:  # pragma: no cover
         plt.plot(rx, ry, "-r")
-        plt.show()
-    
+
     #animate robot to move along desired trajectory
-    #TO DO: 
+    plotRobotTrajectory(rx, ry, xPositionOfObstacles, yPositionOfObstacles)
 
     #initial robot parameters
     goal_pos = np.array([0,0])
