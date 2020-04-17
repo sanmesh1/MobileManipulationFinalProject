@@ -19,7 +19,7 @@ from kinematics_main import inverse_kinematics, forward_kinematics, jacobian_inv
 #for A* path planning
 show_animation = True
 grid_size = 2.0  # [m]
-robot_radius = 1.0  # [m]
+robot_radius = 2.0  # [m]
 
 # start and goal position
 robotStartPose = (10.0,10.0)  # (x,y) [m]
@@ -28,7 +28,7 @@ objectPose = (50.0, 50.0)
 
 #needed for arm kinematics
 N_LINKS = 3
-link_lengths = [1] * N_LINKS
+link_lengths = [2] * N_LINKS
 joint_angles = np.array([0] * N_LINKS)  
 N_ITERATIONS = 10000
 WAIT_FOR_NEW_GOAL = 1
@@ -107,39 +107,102 @@ def generateMapPlotWithRobot(xPositionOfObstacles,yPositionOfObstacles, robotSta
         plt.grid(True)
         plt.axis("equal")
 
-def reorientArmToGrabObject(robotEndPose, objectPose, arm):
+def jacobian(q):
+# Calculate manipulator Jacobian.
+#Takes numpy array of joint angles, in radians.
+    l1 = link_lengths[0]
+    l2 = link_lengths[1]
+    l3 = link_lengths[2]
+
+    zero_zero = -l1*math.sin(q[0]) -l2*math.sin(q[0]+q[1]) - l3*math.sin(q[0]+q[1]+q[2]) 
+    zero_one = -l2*math.sin(q[0]+q[1]) -l3*math.sin(q[0]+q[1]+q[2])
+    zero_two = - l3*math.sin(q[0]+q[1]+q[2])  
+    one_zero = l1*math.cos(q[0]) +l2*math.cos(q[0]+q[1]) + l3*math.cos(q[0]+q[1]+q[2])
+    one_one= l2*math.cos(q[0]+q[1]) + l3*math.cos(q[0]+q[1]+q[2])
+    one_two =   l3*math.cos(q[0]+q[1]+q[2])
+    return np.array([[zero_zero, zero_one, zero_two],
+                 [one_zero, one_one,one_two],
+                 [1,1,1] 
+                 ])#np.eye(3)
+
+def inverseKinematicCartesianAngleStep(targetPose, currentPose, q, Kp):
+    pi = math.pi
+    #arm pose
+    armX = currentPose[0]
+    armY = currentPose[1]
+    armTheta = currentPose[2]
+    #goal pose
+    goal_x_kin = targetPose[0]
+    goal_y_kin = targetPose[1]
+    goal_theta_kin = targetPose[2]
+
+    while (armTheta>pi):
+        armTheta -= 2*pi
+    while (armTheta<-pi):
+        armTheta += 2*pi
+
+    # 2.Calculate position error
+    ex = goal_x_kin - armX
+    ey = goal_y_kin - armY
+    et = goal_theta_kin - armTheta
+
+    while (et>pi):
+        et -= 2*pi
+    while (et<-pi):
+        et += 2*pi
+
+    #calculate error
+    err = np.array([ex, ey, et])
+    #calculate inverse jacobian
+    invJ = np.linalg.pinv(jacobian(q))
+
+    # 3. Do PID Control on position
+    q = np.matmul(invJ, err)*Kp + q
+
+    return q, err
+
+def reorientArmToGrabObject(robotEndPose, objectPose, arm, Kp, marginFromGoal):
+    #temp
+
+    pi = math.pi
+    #object pose
     obj_x = objectPose[0]
     obj_y = objectPose[1]
-    gx = robotEndPose[0]
-    gy = robotEndPose[1]
-    goal_x_kin, goal_y_kin = (obj_x-gx), (obj_y-gy)
-
+    obj_theta = math.pi/2
+    #robot base end pose
+    robot_x = robotEndPose[0]
+    robot_y = robotEndPose[1]
+    robot_theta = np.sum(arm.joint_angles)
+    #arm goal pose relative to robot base
+    goal_x_kin, goal_y_kin = (obj_x-robot_x), (obj_y-robot_y)
     arm.goal = goal_x_kin, goal_y_kin
     goal_pos = arm.goal
-    state = WAIT_FOR_NEW_GOAL
-    solution_found = False
-       
-    old_goal = np.array(goal_pos)
-    print("old_goal = ", old_goal)
-    goal_pos = np.array(arm.goal)
-    print("goal_pos = ", goal_pos)
-    end_effector = arm.end_effector
-    print("end_effector = ", end_effector)
-    errors, distance = distance_to_goal(end_effector, goal_pos)
-    print("errors = ", errors)
-    print("distance = ", distance)
-    print("state = ", state)
-    print("solution_found = ", solution_found)
-    
-    if distance > 0.1 and not solution_found:
-        joint_goal_angles, solution_found = inverse_kinematics(
-            link_lengths, joint_angles, goal_pos)
-        if not solution_found:
-            print("Solution could not be found.")
-        elif solution_found:
-                state = MOVING_TO_GOAL
-    arm.update_joints(joint_goal_angles)
-    return joint_goal_angles, solution_found
+    goal_theta_kin = obj_theta - robot_theta
+
+    err_norm = 100
+    listOfJointAnglesInTrajectory = []
+    while (err_norm  > marginFromGoal):
+        #calculate current arm pose
+        armX, armY = forward_kinematics(link_lengths, arm.joint_angles)
+        armTheta = np.sum(arm.joint_angles)
+        q = arm.joint_angles
+        targetPose = (goal_x_kin,goal_y_kin, goal_theta_kin)
+        currentPose = (armX, armY, armTheta)
+
+        #do one step of cartesian velocity control
+        q, err = inverseKinematicCartesianAngleStep(targetPose, currentPose, q, Kp)
+
+        #if error is less than margin, stop
+        err_norm = np.linalg.norm(err)
+        if err_norm  < marginFromGoal:
+            break 
+
+        listOfJointAnglesInTrajectory.append(q)
+        arm.joint_angles = q
+        arm.update_joints(q)
+        
+
+    return arm.joint_angles, False
 
 def main():
 
@@ -168,12 +231,13 @@ def main():
     plotRobotTrajectory(rx, ry, xPositionOfObstacles, yPositionOfObstacles)
 
     #initial robot parameters
-    goal_pos = np.array([0,0])
-    arm = NLinkArm(link_lengths, joint_angles, goal_pos, show_animation)
+    arm = NLinkArm(link_lengths, joint_angles, np.array([0,0]), show_animation)
     
     
     #Calculate arm pose to grab object
-    joint_goal_angles, solution_found = reorientArmToGrabObject(robotEndPose, objectPose, arm)
+    Kp = 0.1
+    marginFromGoal = 1e-2
+    joint_goal_angles, solution_found = reorientArmToGrabObject(robotEndPose, objectPose, arm, Kp, marginFromGoal)
 
 
 
