@@ -78,9 +78,41 @@ def generateMapPlotWithRobot(xPositionOfObstacles,yPositionOfObstacles, robotSta
         plt.grid(True)
         plt.axis("equal")
 
+def reorientArmToGrabObject(robotEndPose, objectPose, arm):
+    obj_x = objectPose[0]
+    obj_y = objectPose[1]
+    gx = robotEndPose[0]
+    gy = robotEndPose[1]
+    goal_x_kin, goal_y_kin = (obj_x-gx), (obj_y-gy)
+
+    arm.goal = goal_x_kin, goal_y_kin
+    goal_pos = arm.goal
+    state = WAIT_FOR_NEW_GOAL
+    solution_found = False
+       
+    old_goal = np.array(goal_pos)
+    print("old_goal = ", old_goal)
+    goal_pos = np.array(arm.goal)
+    print("goal_pos = ", goal_pos)
+    end_effector = arm.end_effector
+    print("end_effector = ", end_effector)
+    errors, distance = distance_to_goal(end_effector, goal_pos)
+    print("errors = ", errors)
+    print("distance = ", distance)
+    print("state = ", state)
+    print("solution_found = ", solution_found)
+    
+    if distance > 0.1 and not solution_found:
+        joint_goal_angles, solution_found = inverse_kinematics(
+            link_lengths, joint_angles, goal_pos)
+        if not solution_found:
+            print("Solution could not be found.")
+        elif solution_found:
+                state = MOVING_TO_GOAL
+    arm.update_joints(joint_goal_angles)
+    return joint_goal_angles, solution_found
+
 def main():
-    #initial robot parameters
-  
 
     #Gets x and y positions of image coordinates containing obstacles. obstacles include the bounding wall
     xPositionOfObstacles, yPositionOfObstacles = generateObstacleLocationMap()
@@ -107,64 +139,14 @@ def main():
     #animate robot to move along desired trajectory
     #TO DO: 
 
-
-    goal_x_kin, goal_y_kin = (obj_x-gx), (obj_y-gy)
+    #initial robot parameters
+    goal_pos = np.array([0,0])
+    arm = NLinkArm(link_lengths, joint_angles, goal_pos, show_animation)
+    
     
     #Calculate arm pose to grab object
-    #reorientArmToGrabObject()
-    
+    joint_goal_angles, solution_found = reorientArmToGrabObject(robotEndPose, objectPose, arm)
 
-    goal_pos = goal_x_kin, goal_y_kin
-    
-    arm = NLinkArm(link_lengths, joint_angles, goal_pos, show_animation)
-    state = WAIT_FOR_NEW_GOAL
-    solution_found = False
-       
-    old_goal = np.array(goal_pos)
-    print("old_goal = ", old_goal)
-    goal_pos = np.array(arm.goal)
-    print("goal_pos = ", goal_pos)
-    end_effector = arm.end_effector
-    print("end_effector = ", end_effector)
-    errors, distance = distance_to_goal(end_effector, goal_pos)
-    print("errors = ", errors)
-    print("distance = ", distance)
-    print("state = ", state)
-    print("solution_found = ", solution_found)
-    
-    if distance > 0.1 and not solution_found:
-        joint_goal_angles, solution_found = inverse_kinematics(
-            link_lengths, joint_angles, goal_pos)
-        if not solution_found:
-            print("Solution could not be found.")
-        elif solution_found:
-                state = MOVING_TO_GOAL
-    arm.update_joints(joint_goal_angles)
-
-#    if state is WAIT_FOR_NEW_GOAL:
-#    
-#        if distance > 0.1 and not solution_found:
-#            joint_goal_angles, solution_found = inverse_kinematics(
-#                link_lengths, joint_angles, goal_pos)
-#            if not solution_found:
-#                print("Solution could not be found.")
-#    
-#            elif solution_found:
-#                state = MOVING_TO_GOAL
-#    #joint_angles = joint_angles + Kp * \
-#                #ang_diff(joint_goal_angles, joint_angles) * dt
-#    arm.update_joints(joint_goal_angles)
-            
-#    if state is MOVING_TO_GOAL:
-#        if distance > 0.1 and all(old_goal == goal_pos):
-#            joint_angles = joint_angles + Kp * \
-#                ang_diff(joint_goal_angles, joint_angles) * dt
-#        else:
-#            state = WAIT_FOR_NEW_GOAL
-#            solution_found = False
-#            print("Solution could not be found.")
-#                    
-#        arm.update_joints(joint_angles)
 
 
 if __name__ == '__main__':
