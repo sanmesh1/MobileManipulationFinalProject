@@ -48,7 +48,7 @@ robot_radius = 3.0  # [m]
 #needed for arm kinematics
 N_LINKS = 2
 link_lengths = [robot_radius] * N_LINKS
-joint_angles = np.array([0, -np.pi]) #np.array([0] * N_LINKS)  
+joint_angles = np.array([-np.pi, np.pi]) #np.array([0] * N_LINKS)  
 N_ITERATIONS = 10000
 
 M = 100
