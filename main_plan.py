@@ -13,27 +13,39 @@ from a_star import AStarPlanner
 #Imports needed for arm kinematics
 from NLinkArm import NLinkArm
 from kinematics_main import inverse_kinematics, forward_kinematics, jacobian_inverse, distance_to_goal, ang_diff
-
+pi= math.pi
 ######################################
 #INPUTS 
 ######################################
+testcase = 0
+if testcase == 0:
+        obstacleMapId = 0
+        robotStartPose = (48.0,48.0, 0)  # (x,y) [m]
+        robotEndPose = (14.0, 14.0, 0)  # (x,y) [m]
+        objectPose = (10.0, 10.0, -pi/2)	
+if testcase == 1:
+        obstacleMapId = 1
+        robotStartPose = (10.0,10.0,0)  # (x,y) [m]
+        robotEndPose = (48.0, 48.0, 0)  # (x,y) [m]
+        objectPose = (50.0, 50.0, 0)
+
 #for A* path planning
-obstacleMapId = 1
+
 show_animation = True
 grid_size = 2.0  # [m]
-robot_radius = 2.0  # [m]
-pi= math.pi
+robot_radius = 3.0  # [m]
+
 # start and goal position
 #robotStartPose = (10.0,10.0,0)  # (x,y) [m]
 #robotEndPose = (48.0, 48.0, 0)  # (x,y) [m]
 #objectPose = (50.0, 50.0, pi/2)
 robotStartPose = (48.0,48.0, 0)  # (x,y) [m]
-robotEndPose = (12.0, 12.0, 0)  # (x,y) [m]
+robotEndPose = (14.0, 14.0, 0)  # (x,y) [m]
 objectPose = (10.0, 10.0, -pi/2)
 
 #needed for arm kinematics
 N_LINKS = 3
-link_lengths = [2] * N_LINKS
+link_lengths = [robot_radius] * N_LINKS
 joint_angles = np.array([0, -np.pi, -np.pi]) #np.array([0] * N_LINKS)  
 N_ITERATIONS = 10000
 WAIT_FOR_NEW_GOAL = 1
@@ -135,7 +147,7 @@ def plotRobotTrajectory(traj_x, traj_y, xPositionOfObstacles, yPositionOfObstacl
         for i in range(N_LINKS + 1):
             if i is not N_LINKS:
                 x = plt.plot([points[i][0], points[i + 1][0]],
-                            [points[i][1], points[i + 1][1]], 'r-', linewidth=2)
+                            [points[i][1], points[i + 1][1]], 'g-', linewidth=2)
             plt.plot(points[i][0], points[i][1], 'ko', markersize=1)
             
         plt.draw()
@@ -165,7 +177,7 @@ def plotManipulatorTrajectory(traj_x, traj_y, xPositionOfObstacles, yPositionOfO
         for i in range(N_LINKS + 1):
             if i is not N_LINKS:
                 x = plt.plot([points[i][0], points[i + 1][0]],
-                            [points[i][1], points[i + 1][1]], 'r-', linewidth=2)
+                            [points[i][1], points[i + 1][1]], 'g-', linewidth=2)
             plt.plot(points[i][0], points[i][1], 'ko', markersize=1)
             
         plt.draw()
@@ -538,7 +550,7 @@ def main():
     
     
     #Calculate arm pose to grab object
-    Kp = 0.1
+    Kp = 0.05
     marginFromGoal = 1e-2
     use_joint_angles = True  
     
