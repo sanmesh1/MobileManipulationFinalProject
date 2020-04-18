@@ -17,17 +17,19 @@ pi= math.pi
 ######################################
 #INPUTS 
 ######################################
-testcase = 0
+testcase = 1
 if testcase == 0:
         obstacleMapId = 0
         robotStartPose = (48.0,48.0, 0)  # (x,y) [m]
         robotEndPose = (14.0, 14.0, 0)  # (x,y) [m]
-        objectPose = (10.0, 10.0, -pi/2)	
+        objectPose = (10.0, 10.0, -pi/2)
+        useJointSpaceMotionControl = True 
 if testcase == 1:
         obstacleMapId = 1
         robotStartPose = (10.0,10.0,0)  # (x,y) [m]
         robotEndPose = (48.0, 48.0, 0)  # (x,y) [m]
         objectPose = (50.0, 50.0, 0)
+        useJointSpaceMotionControl = False
 
 #for A* path planning
 
@@ -473,6 +475,7 @@ def reorientArmToGrabObjectJointSpaceMotionControl(robotEndPose, objectPose, arm
                 q[i] += 2*pi
         #print("arm.joint_angles after norm = ", arm.joint_angles)
         armX, armY = forward_kinematics(link_lengths, q)
+        #print("(armX, armY) = ", (armX, armY))
         armTheta = np.sum(q)
         while (armTheta>pi):
             armTheta -= 2*pi
@@ -499,24 +502,34 @@ def reorientArmToGrabObjectJointSpaceMotionControl(robotEndPose, objectPose, arm
                 q[i] += 2*pi
     qd = q
     err_norm = 100
+    #print("found a solution")
+    #print("qd = ", qd)
     while (err_norm  > marginFromGoal):
+        #print("arm.joint_angles = ", arm.joint_angles)
         err = qd - arm.joint_angles
         err_norm = np.linalg.norm(err)
+        #print("err_norm = ", err_norm)
         for i in range(err.size):
             while (err[i]>pi):
                 err[i] -= 2*pi
-            while (q[i]<-pi):
+            while (err[i]<-pi):
                 err[i] += 2*pi
-            arm.joint_angles =arm.joint_angles  +Kp*err
+        #print("err = ", err)        
+        arm.joint_angles =arm.joint_angles  +Kp*err
+        for i in range(arm.joint_angles.size):
+            while (arm.joint_angles[i]>pi):
+                arm.joint_angles[i] -= 2*pi
+            while (arm.joint_angles[i]<-pi):
+                arm.joint_angles[i] += 2*pi
         listOfJointAnglesInTrajectory.append(arm.joint_angles)
         arm.update_joints(arm.joint_angles)
         #time.sleep(1)
         
-
+    #print("exit function")
     return listOfJointAnglesInTrajectory
 
 def main():
-
+    print("testcase = ", testcase)
     #Gets x and y positions of image coordinates containing obstacles. obstacles include the bounding wall
     if obstacleMapId == 0:
     	xPositionOfObstacles, yPositionOfObstacles = generateObstacleLocationMap()
@@ -551,13 +564,13 @@ def main():
     
     #Calculate arm pose to grab object
     Kp = 0.05
-    marginFromGoal = 1e-2
-    use_joint_angles = True  
+    marginFromGoal = 1e-2 
     
-    if use_joint_angles:
-        joint_goal_angles, solution_found, listOfJointAnglesInTrajectory = reorientArmToGrabObject(robotEndPose, objectPose, arm, Kp, marginFromGoal)
-    else:
+    if useJointSpaceMotionControl:
         listOfJointAnglesInTrajectory = reorientArmToGrabObjectJointSpaceMotionControl(robotEndPose, objectPose, arm, Kp, marginFromGoal)
+    else:
+        joint_goal_angles, solution_found, listOfJointAnglesInTrajectory = reorientArmToGrabObject(robotEndPose, objectPose, arm, Kp, marginFromGoal)
+
     
     plotManipulatorTrajectory(rx, ry, xPositionOfObstacles, yPositionOfObstacles, listOfJointAnglesInTrajectory)
     
