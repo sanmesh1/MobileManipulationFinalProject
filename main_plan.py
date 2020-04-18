@@ -18,6 +18,7 @@ from kinematics_main import inverse_kinematics, forward_kinematics, jacobian_inv
 #INPUTS 
 ######################################
 #for A* path planning
+obstacleMapId = 1
 show_animation = True
 grid_size = 2.0  # [m]
 robot_radius = 2.0  # [m]
@@ -70,6 +71,45 @@ def generateObstacleLocationMap():
         oy.append(60.0 - i)
     return ox,oy
 
+def generateObstacleLocationMap2():
+    # set obstable positions
+    ox, oy = [], []
+    for i in range(-10, 60):
+        ox.append(i)
+        oy.append(-10.0)
+    for i in range(-10, 60):
+        ox.append(60.0)
+        oy.append(i)
+    for i in range(-10, 60):
+        ox.append(i)
+        oy.append(60.0)
+    for i in range(-10, 60):
+        ox.append(-10.0)
+        oy.append(i)
+    for i in range(-10, 40):
+        oy.append(20.0)
+        ox.append(i)
+    for i in range(0, 40):
+        oy.append(40.0)
+        ox.append(60.0 - i)
+
+    for i in range(-10+16, 60-16):
+        ox.append(i)
+        oy.append(30.0)
+
+    for i in range(18, 20):
+        ox.append(30.0)
+        oy.append(i)
+
+    for i in range(8, 16):
+        ox.append(30.0)
+        oy.append(i)
+
+    for i in range(-10, 0):
+        ox.append(30.0)
+        oy.append(i)
+
+    return ox,oy
 ##
 #Gets x and y pixel positions containing obstacles. obstacles include the bounding wall
 ##
@@ -206,16 +246,16 @@ def inverseKinematicCartesianAngleStep(targetPose, currentPose, q, Kp):
     err = np.array([ex, ey, et])
 
 
-    print("q before matrix mult = ", q)
-    print("J = ", J)
-    print("invJ = ", invJ)
+    #print("q before matrix mult = ", q)
+    #print("J = ", J)
+    #print("invJ = ", invJ)
 
     # 3. Do PID Control on position
     qdif = np.matmul(invJ, err)*Kp
     q = qdif+q
-    print("err = ", err)
+    #print("err = ", err)
 
-    print("q after matrix mult = ", q)
+    #print("q after matrix mult = ", q)
     for i in range(q.size):
         while (q[i]>pi):
             q[i] -= 2*pi
@@ -287,7 +327,7 @@ def reorientArmToGrabObject(robotEndPose, objectPose, arm, Kp, marginFromGoal):
         #do one step of cartesian velocity control
         q, err = inverseKinematicCartesianAngleStep(targetPose, currentPose, q, Kp)
 
-        print("q returned from inverseKin function = ", q)
+        #print("q returned from inverseKin function = ", q)
         #if error is less than margin, stop
         err_norm = np.linalg.norm(err)
         if err_norm  < marginFromGoal:
@@ -302,7 +342,7 @@ def reorientArmToGrabObject(robotEndPose, objectPose, arm, Kp, marginFromGoal):
         listOfJointAnglesInTrajectory.append(q)
         arm.joint_angles = q
         arm.update_joints(q)
-        time.sleep(1)
+        #time.sleep(1)
         
 
     return arm.joint_angles, False, listOfJointAnglesInTrajectory
@@ -354,16 +394,16 @@ def inverseKinematicSolve(targetPose, currentPose, q):
     err = np.array([ex, ey, et])
 
 
-    print("q before matrix mult = ", q)
-    print("J = ", J)
-    print("invJ = ", invJ)
+    #print("q before matrix mult = ", q)
+    #print("J = ", J)
+    #print("invJ = ", invJ)
 
     # 3. Do PID Control on position
     qdif = np.matmul(invJ, err)
     q = qdif+q
-    print("err = ", err)
+    #print("err = ", err)
 
-    print("q after matrix mult = ", q)
+    #print("q after matrix mult = ", q)
     for i in range(q.size):
         while (q[i]>pi):
             q[i] -= 2*pi
@@ -371,6 +411,7 @@ def inverseKinematicSolve(targetPose, currentPose, q):
             q[i] += 2*pi
 
     return q, err
+
 
 def reorientArmToGrabObjectJointSpaceMotionControl(robotEndPose, objectPose, arm, Kp, marginFromGoal):
     #temp
@@ -433,7 +474,7 @@ def reorientArmToGrabObjectJointSpaceMotionControl(robotEndPose, objectPose, arm
         #do one step of cartesian velocity control
         q, err = inverseKinematicSolve(targetPose, currentPose, q)
 
-        print("q returned from inverseKin function = ", q)
+        #print("q returned from inverseKin function = ", q)
         #if error is less than margin, stop
         err_norm = np.linalg.norm(err)
         if err_norm  < marginFromGoal:
@@ -465,7 +506,10 @@ def reorientArmToGrabObjectJointSpaceMotionControl(robotEndPose, objectPose, arm
 def main():
 
     #Gets x and y positions of image coordinates containing obstacles. obstacles include the bounding wall
-    xPositionOfObstacles, yPositionOfObstacles = generateObstacleLocationMap()
+    if obstacleMapId == 0:
+    	xPositionOfObstacles, yPositionOfObstacles = generateObstacleLocationMap()
+    elif obstacleMapId == 1:
+        xPositionOfObstacles, yPositionOfObstacles = generateObstacleLocationMap2()
     
     #plot the map with the obstacles and robot
     generateMapPlotWithRobot(xPositionOfObstacles, yPositionOfObstacles, robotStartPose, robotEndPose, objectPose)
@@ -496,7 +540,7 @@ def main():
     #Calculate arm pose to grab object
     Kp = 0.1
     marginFromGoal = 1e-2
-    use_joint_angles = False  
+    use_joint_angles = True  
     
     if use_joint_angles:
         joint_goal_angles, solution_found, listOfJointAnglesInTrajectory = reorientArmToGrabObject(robotEndPose, objectPose, arm, Kp, marginFromGoal)
