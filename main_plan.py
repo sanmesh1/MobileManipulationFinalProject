@@ -29,7 +29,7 @@ objectPose = (50.0, 50.0)
 #needed for arm kinematics
 N_LINKS = 3
 link_lengths = [2] * N_LINKS
-joint_angles = np.array([0] * N_LINKS)  
+joint_angles = np.array([0, -np.pi, -np.pi]) #np.array([0] * N_LINKS)  
 N_ITERATIONS = 10000
 WAIT_FOR_NEW_GOAL = 1
 MOVING_TO_GOAL = 2
@@ -87,6 +87,36 @@ def plotRobotTrajectory(traj_x, traj_y, xPositionOfObstacles, yPositionOfObstacl
                 np.cos(np.sum(joint_angles[:i]))
             points[i][1] = points[i - 1][1] + link_lengths[i - 1] * \
                 np.sin(np.sum(joint_angles[:i]))
+        
+        for i in range(N_LINKS + 1):
+            if i is not N_LINKS:
+                x = plt.plot([points[i][0], points[i + 1][0]],
+                            [points[i][1], points[i + 1][1]], 'r-', linewidth=2)
+            plt.plot(points[i][0], points[i][1], 'ko', markersize=1)
+            
+        plt.draw()
+        plt.pause(0.0001)
+        
+def plotManipulatorTrajectory(traj_x, traj_y, xPositionOfObstacles, yPositionOfObstacles, traj_angles):
+    
+    rev_traj_x = traj_x[::-1]
+    rev_traj_y = traj_y[::-1]
+    
+    for i in range(len(traj_angles)):
+        
+        curr_joint_angles = traj_angles[i]
+        
+        plt.cla()
+        generateMapPlotWithRobot(xPositionOfObstacles, yPositionOfObstacles, robotStartPose, robotEndPose, objectPose)
+        plt.plot(traj_x, traj_y, "-r")
+        
+        points = [[robotEndPose[0], robotEndPose[1]] for _ in range(N_LINKS + 1)]
+        
+        for i in range(1, N_LINKS + 1):
+            points[i][0] = points[i - 1][0] + link_lengths[i - 1] * \
+                np.cos(np.sum(curr_joint_angles[:i]))
+            points[i][1] = points[i - 1][1] + link_lengths[i - 1] * \
+                np.sin(np.sum(curr_joint_angles[:i]))
         
         for i in range(N_LINKS + 1):
             if i is not N_LINKS:
@@ -195,14 +225,14 @@ def reorientArmToGrabObject(robotEndPose, objectPose, arm, Kp, marginFromGoal):
         #if error is less than margin, stop
         err_norm = np.linalg.norm(err)
         if err_norm  < marginFromGoal:
-            break 
+            return arm.joint_angles, True, listOfJointAnglesInTrajectory
 
         listOfJointAnglesInTrajectory.append(q)
         arm.joint_angles = q
         arm.update_joints(q)
         
 
-    return arm.joint_angles, False
+    return arm.joint_angles, False, listOfJointAnglesInTrajectory
 
 def main():
 
@@ -231,13 +261,16 @@ def main():
     plotRobotTrajectory(rx, ry, xPositionOfObstacles, yPositionOfObstacles)
 
     #initial robot parameters
-    arm = NLinkArm(link_lengths, joint_angles, np.array([0,0]), show_animation)
+    # arm = NLinkArm(link_lengths, joint_angles, np.array([0,0]), show_animation)
+    arm = NLinkArm(link_lengths, joint_angles, np.array([0,0]), False)
     
     
     #Calculate arm pose to grab object
     Kp = 0.1
     marginFromGoal = 1e-2
-    joint_goal_angles, solution_found = reorientArmToGrabObject(robotEndPose, objectPose, arm, Kp, marginFromGoal)
+    joint_goal_angles, solution_found, listOfJointAnglesInTrajectory = reorientArmToGrabObject(robotEndPose, objectPose, arm, Kp, marginFromGoal)
+    
+    plotManipulatorTrajectory(rx, ry, xPositionOfObstacles, yPositionOfObstacles, listOfJointAnglesInTrajectory)
 
 
 
