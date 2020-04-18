@@ -17,7 +17,7 @@ pi= math.pi
 ######################################
 #INPUTS 
 ######################################
-testcase = 0
+testcase = 2
 if testcase == 0:
         obstacleMapId = 0
         robotStartPose = (14.0, 14.0, 0)#(48.0,48.0, 0)  # (x,y) [m]
@@ -29,6 +29,15 @@ if testcase == 1:
         robotStartPose = (48.0,48.0, 0)#(10.0,10.0,0)  # (x,y) [m]
         robotEndPose = (14.0, 14.0, 0)#(48.0, 48.0, 0)  # (x,y) [m]
         objectPose = (8.0, 10.0, pi)#(55.0, 51.0, 0)
+        useJointSpaceMotionControl = False
+
+if testcase == 2:
+        numVerticalBlocks= 30
+        lengthOfVerticalBlock = 5
+        obstacleMapId = 2
+        robotStartPose = (56.0,56.0, 0)#(10.0,10.0,0)  # (x,y) [m]
+        robotEndPose = (-2.0, -2.0, 0)#(48.0, 48.0, 0)  # (x,y) [m]
+        objectPose = (-8.0, -6.0, pi)#(55.0, 51.0, 0)
         useJointSpaceMotionControl = False
 
 #for A* path planning
@@ -124,6 +133,37 @@ def generateObstacleLocationMap2():
         oy.append(i)
 
     return ox,oy
+
+def generateRandomObstacleLocationMap(numVerticalBlocks, lengthOfVerticalBlock):
+    # set obstable positions. This is a 70 by 70 space
+    ox, oy = [], []
+    for i in range(-10, 60):
+        ox.append(i)
+        oy.append(-10.0)
+    for i in range(-10, 60):
+        ox.append(60.0)
+        oy.append(i)
+    for i in range(-10, 61):
+        ox.append(i)
+        oy.append(60.0)
+    for i in range(-10, 61):
+        ox.append(-10.0)
+        oy.append(i)
+    
+    ###we are gonna randomly place 10-pixel vertical segments. Dont place any segments in the region x and y = -10 to 0 and x and y = 54 to 60
+    #the bottom of these block has to be between -10 and 50, and the x axis is between -10 an 59
+    for i in range(numVerticalBlocks):
+        bottomYCoord = np.random.random_integers(low = -10, high = 59-lengthOfVerticalBlock)
+        XCoord = np.random.random_integers(low = -10, high = 59)
+        if (XCoord < 0 and bottomYCoord < 0) or (XCoord > 54 and bottomYCoord < 54 - lengthOfVerticalBlock):
+             a = 1
+        else:
+            for i in range(0, lengthOfVerticalBlock):
+                ox.append(XCoord)
+                oy.append(i+bottomYCoord)	
+
+    return ox,oy
+
 ##
 #Gets x and y pixel positions containing obstacles. obstacles include the bounding wall
 ##
@@ -536,6 +576,8 @@ def main():
     	xPositionOfObstacles, yPositionOfObstacles = generateObstacleLocationMap()
     elif obstacleMapId == 1:
         xPositionOfObstacles, yPositionOfObstacles = generateObstacleLocationMap2()
+    elif obstacleMapId == 2:
+         xPositionOfObstacles, yPositionOfObstacles = generateRandomObstacleLocationMap(numVerticalBlocks, lengthOfVerticalBlock)
     
     #plot the map with the obstacles and robot
     generateMapPlotWithRobot(xPositionOfObstacles, yPositionOfObstacles, robotStartPose, robotEndPose, objectPose)
