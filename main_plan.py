@@ -17,18 +17,18 @@ pi= math.pi
 ######################################
 #INPUTS 
 ######################################
-testcase = 1
+testcase = 0
 if testcase == 0:
         obstacleMapId = 0
-        robotStartPose = (48.0,48.0, 0)  # (x,y) [m]
-        robotEndPose = (14.0, 14.0, 0)  # (x,y) [m]
-        objectPose = (10.0, 10.0, -pi/2)
+        robotStartPose = (14.0, 14.0, 0)#(48.0,48.0, 0)  # (x,y) [m]
+        robotEndPose = (48.0,48.0, 0)#(14.0, 14.0, 0)  # (x,y) [m]
+        objectPose = (51.0, 52.0, pi/2)
         useJointSpaceMotionControl = True 
 if testcase == 1:
         obstacleMapId = 1
-        robotStartPose = (10.0,10.0,0)  # (x,y) [m]
-        robotEndPose = (48.0, 48.0, 0)  # (x,y) [m]
-        objectPose = (50.0, 50.0, 0)
+        robotStartPose = (48.0,48.0, 0)#(10.0,10.0,0)  # (x,y) [m]
+        robotEndPose = (14.0, 14.0, 0)#(48.0, 48.0, 0)  # (x,y) [m]
+        objectPose = (8.0, 10.0, pi)#(55.0, 51.0, 0)
         useJointSpaceMotionControl = False
 
 #for A* path planning
@@ -41,9 +41,9 @@ robot_radius = 3.0  # [m]
 #robotStartPose = (10.0,10.0,0)  # (x,y) [m]
 #robotEndPose = (48.0, 48.0, 0)  # (x,y) [m]
 #objectPose = (50.0, 50.0, pi/2)
-robotStartPose = (48.0,48.0, 0)  # (x,y) [m]
-robotEndPose = (14.0, 14.0, 0)  # (x,y) [m]
-objectPose = (10.0, 10.0, -pi/2)
+#robotStartPose = (48.0,48.0, 0)  # (x,y) [m]
+#robotEndPose = (14.0, 14.0, 0)  # (x,y) [m]
+#objectPose = (10.0, 10.0, -pi/2)
 
 #needed for arm kinematics
 N_LINKS = 3
@@ -111,11 +111,11 @@ def generateObstacleLocationMap2():
         ox.append(i)
         oy.append(30.0)
 
-    for i in range(18, 20):
+    for i in range(16, 20):
         ox.append(30.0)
         oy.append(i)
 
-    for i in range(8, 16):
+    for i in range(8, 14):
         ox.append(30.0)
         oy.append(i)
 
@@ -504,6 +504,7 @@ def reorientArmToGrabObjectJointSpaceMotionControl(robotEndPose, objectPose, arm
     err_norm = 100
     #print("found a solution")
     #print("qd = ", qd)
+
     while (err_norm  > marginFromGoal):
         #print("arm.joint_angles = ", arm.joint_angles)
         err = qd - arm.joint_angles
@@ -570,8 +571,25 @@ def main():
         listOfJointAnglesInTrajectory = reorientArmToGrabObjectJointSpaceMotionControl(robotEndPose, objectPose, arm, Kp, marginFromGoal)
     else:
         joint_goal_angles, solution_found, listOfJointAnglesInTrajectory = reorientArmToGrabObject(robotEndPose, objectPose, arm, Kp, marginFromGoal)
+        
+    armX, armY = forward_kinematics(link_lengths, listOfJointAnglesInTrajectory[-1])
+    armTheta = np.sum(listOfJointAnglesInTrajectory[-1])
+    desiredEndPose = np.array(objectPose)
+    actualEndPose = np.array([armX, armY, armTheta])+robotEndPose
+    while (actualEndPose[2]>pi):
+        actualEndPose[2] -= 2*pi
+    while (actualEndPose[2]<-pi):
+        actualEndPose[2] += 2*pi
+    print("desired end effector pose (X,Y, thetaRadians) = ", desiredEndPose)
+    print("actual end effector pose (X,Y, thetaRadians) = ", actualEndPose)
+    diff = desiredEndPose-actualEndPose
+    while (diff[2]>pi):
+        diff[2] -= 2*pi
+    while (diff[2]<-pi):
+        diff[2] += 2*pi
+    print("desired minus actual end effector pose = ", diff)
+    print("diff norm = ", np.linalg.norm(diff))
 
-    
     plotManipulatorTrajectory(rx, ry, xPositionOfObstacles, yPositionOfObstacles, listOfJointAnglesInTrajectory)
     
 
