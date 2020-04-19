@@ -17,7 +17,7 @@ pi= math.pi
 ######################################
 #INPUTS 
 ######################################
-testcase = 2
+testcase = 1
 if testcase == 0:
         obstacleMapId = 0
         robotStartPose = (14.0, 14.0, 0)#(48.0,48.0, 0)  # (x,y) [m]
