@@ -52,7 +52,7 @@ joint_angles = np.array([-np.pi, np.pi]) #np.array([0] * N_LINKS)
 N_ITERATIONS = 10000
 
 M = 100
-obstacles = [[2.35, 3.75, 0.6], [4.55, 2.5, 0.5], [0, -1, 0.25]]
+obstacles = [[2.35, 3.75, 0.6], [4.55, 2.5, 0.5], [6.3, 1, 0.25], [1.3, 6.1, 0.25]]
 
 
 
